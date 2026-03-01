@@ -1,0 +1,17 @@
+# terraform.tfvars
+
+# --- The "Handshake" IDs (Required) ---
+billing_account  = "YOUR_BILLING_ACCOUNT_ID"  # e.g., 012345-567890-ABCDEF
+folder_id        = "YOUR_FOLDER_ID"           # e.g., 123456789012
+hub_project_id   = "your-hub-project-id"
+tenant_id_suffix = "v1"                       # This makes your mkt/hr projects unique
+
+# --- Organization & Networking (Enterprise) ---
+org_id           = "YOUR_ORG_ID"              # e.g., 112233445566
+region           = "us-central1"
+domain_name      = "agents.your-domain.com"
+frontend_portal_image = "us-docker.pkg.dev/cloudrun/container/hello"
+
+# --- Security & VPC-SC (Optional/Advanced) ---
+access_policy_id   = "" # Leave empty if not using VPC-SC yet
+hub_project_number = "" # Leave empty if not using VPC-SC yet
