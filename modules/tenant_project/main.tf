@@ -16,6 +16,9 @@ resource "google_project_service" "apis" {
     "aiplatform.googleapis.com",
     "bigquery.googleapis.com",
     "storage.googleapis.com",
+    "iamcredentials.googleapis.com",
+    "logging.googleapis.com",
+    "monitoring.googleapis.com",
     "serviceusage.googleapis.com"
   ])
   service = each.key
