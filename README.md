@@ -32,12 +32,14 @@ Before you begin, ensure you have the following:
 git clone <your-repo-url>
 cd terraform-google-multi-tenant-agentic-ai
 terraform init
+```
 
 Step B: Configure Variables
 Copy the example variable file and fill in your specific environment details:
 
 ```bash
 cp terraform.tfvars.example terraform.tfvars
+```
 
 CRUCIAL: You must provide the Project Numbers (Numerical IDs) for the Hub and Spokes. PAB and VPC-SC policies do not support String IDs.
 
@@ -51,6 +53,7 @@ For Internal-Only: Add your VPN/Office IP ranges (e.g., ["35.2.3.4/32"]).
 ```bash
 terraform plan   # Review the 20+ resources being created
 terraform apply  # Confirm with 'yes'
+```
 
 🚀 4. Step-by-Step Deployment Guide
 Phase 1: Environment Preparation
@@ -61,13 +64,14 @@ gcloud services enable cloudresourcemanager.googleapis.com \
                        serviceusage.googleapis.com \
                        accesscontextmanager.googleapis.com \
                        billingbudgets.googleapis.com
-
+```
 Create an Access Policy (if one doesn't exist):
 
 ```bash
 
 gcloud access-context-manager policies create \
   --organization=YOUR_ORG_ID --title="Org Policy"
+```
 
 Phase 2: Configuration
 Edit terraform.tfvars: Use vi or nano to input your specific IDs.
@@ -76,24 +80,26 @@ Find Project Numbers:
 
 ```bash
 gcloud projects describe YOUR_PROJECT_ID --format="value(projectNumber)"
+```
 
 Phase 3: Execution
 Plan the Deployment:
 
 ```bash
 terraform plan -out=platform.tfplan
-
+```
 Apply the Changes:
 ```bash
 
 terraform apply "platform.tfplan"
-
+```
 Phase 4: Post-Deployment Verification
 Verify Outer Wall (VPC-SC):
 
 ```bash
 
 gcloud access-context-manager perimeters list --policy=YOUR_ACCESS_POLICY_ID
+```
 
 Verify Inner Handcuffs (PAB):
 
