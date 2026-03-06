@@ -1,43 +1,26 @@
-# org/vpc_sc.tf
-
-resource "google_access_context_manager_service_perimeter" "tenant_perimeter" {
+# Create one single Macro-Perimeter for the entire platform (Hub + All Spokes)
+resource "google_access_context_manager_service_perimeter" "platform_macro_perimeter" {
   parent = "accessPolicies/${var.access_policy_id}"
-  name   = "accessPolicies/${var.access_policy_id}/servicePerimeters/tenant_ai_perimeter"
-  title  = "Agentic AI Tenant Perimeter"
+  name   = "accessPolicies/${var.access_policy_id}/servicePerimeters/agent_factory_macro_boundary"
+  title  = "Agent Factory Macro Perimeter"
   
-  # Set to true for "Dry Run" mode to test without blocking traffic
-  use_explicit_dry_run_spec = true 
-
   status {
-    # Include the project numbers for Marketing and HR
-    resources = [
-      "projects/${var.marketing_project_number}",
-      "projects/${var.hr_project_number}"
-    ]
+    # Combine the Hub project and all Tenant Spoke project numbers
+    resources = concat(
+      ["projects/${var.hub_project_number}"],
+      [for p_num in var.tenant_project_numbers : "projects/${p_num}"]
+    )
 
-    # The "High Risk" services we want to lock down
+    # These are the services we are protecting from data exfiltration
     restricted_services = [
       "storage.googleapis.com",
       "bigquery.googleapis.com",
-      "aiplatform.googleapis.com",
-      "run.googleapis.com"
+      "aiplatform.googleapis.com",      # Vertex AI
+      "discoveryengine.googleapis.com", # Vertex AI Search
+      "logging.googleapis.com"
     ]
-
-    # Ingress Policy: Allow the Central Hub to talk to the Spokes
-    ingress_policies {
-      ingress_from {
-        identity_type = "ANY_IDENTITY"
-        sources {
-          project = "projects/${var.hub_project_number}"
-        }
-      }
-      ingress_to {
-        resources = ["*"]
-        operations {
-          service_name = "*"
-          method_selectors { method = "*" }
-        }
-      }
-    }
+    
+    # IMPORTANT: We no longer need "Bridges" or "VPC-SC Peerings" 
+    # because every project is now inside the same perimeter.
   }
 }

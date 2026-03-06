@@ -1,102 +1,136 @@
-# Terraform for Multi-Tenant Agentic AI Architecture
+Multi-Tenant Agentic AI Architecture (Terraform)
+This repository provides the Well-Architected Framework for deploying a secure, multi-tenant Agentic AI platform on Google Cloud. It uses a Hub-and-Spoke model to provide centralized governance while maintaining "Hard Isolation" between business units (e.g., HR, Marketing, Finance).
 
-This repository contains the Terraform modules to deploy the foundational infrastructure for the **"Multi-tenant agentic AI system using ADK and Cloud Run"** reference architecture.
+1. Architecture Overview
+The deployment automates a "Double-Lock" security strategy:
 
-This code is intended to be a clear and illustrative template. It creates the core isolated tenant projects and custom IAM roles. To move this to a full production deployment, you will need to extend it with your organization-specific details, particularly around IAM bindings, network configurations, and VPC Service Control ingress/egress rules.
+The Outer Wall (VPC Service Controls): A single Macro-Perimeter wraps the Hub and all Spoke projects to prevent data exfiltration to the public internet.
 
-## Architecture Overview
+The Inner Handcuffs (Principal Access Boundaries): Every tenant agent is assigned a unique Service Account. A PAB Policy cryptographically restricts that identity to its own project, preventing lateral movement between tenants.
 
-This Terraform deployment will create:
+The Smart Gate (Cloud Armor): A flexible Edge Security policy that supports both Public-Facing (WAF protected) and Internal-Only (First-Packet-Deny) access modes.
 
-1.  **Reusable Tenant Module:** A module (`modules/tenant_project`) that can be called repeatedly to stamp out new, isolated tenant environments.
-2.  **For Each Tenant:**
-    *   A dedicated Google Cloud Project.
-    *   The four unique Custom IAM Roles (`GeminiConsoleViewer`, `GeminiDataSteward`, `GeminiAgentBuilder`, `GeminiAppUser`) *within the tenant project*.
-    *   Required API services enabled.
-    *   A dedicated service account for the agent runtime (`agent-runtime-sa`).
-    *   Placeholder data stores (GCS Bucket, BigQuery Dataset) for RAG.
-    *   A placeholder Cloud Run service for the ADK-based agent.
-3.  **Example Central Hub:** A module (`modules/central_hub`) demonstrating a potential setup for the Frontend Portal with Load Balancing and IAP. This section requires significant adaptation for your specific network and application.
-4.  **Example VPC Service Controls:** An example (`org/vpc_sc.tf`) of how to define a perimeter. This must be managed at the organization level and requires detailed ingress/egress rule configuration.
+2. Prerequisites
+Before you begin, ensure you have the following:
 
-## How to Use This Template
+Google Cloud Organization: You must have an Organization node (PABs and VPC-SC cannot be tested in a standalone project).
 
-1.  **Clone this repository.**
-2.  **Configure your backend:** For production use, configure a [remote backend](https://www.terraform.io/language/settings/backends/gcs) (e.g., Google Cloud Storage) for your Terraform state. Add the configuration to a file like `backend.tf`.
-3.  **Create a `terraform.tfvars` file:** Copy `terraform.tfvars.examples` to `terraform.tfvars` and populate it with your organization-specific values (e.g., billing account, folder IDs, domain names).
-4.  **Review and Customize:** Carefully review the variables and resource configurations in the modules, especially in `modules/central_hub/` and `org/vpc_sc.tf`.
-5.  **Run Terraform:**
-    ```bash
-    terraform init
-    terraform plan
-    terraform apply
-    ```
+Permissions: You need roles/resourcemanager.projectCreator and roles/accesscontextmanager.policyAdmin at the Folder or Org level.
 
-## Next Steps for Production Deployment
+Information Gathering: Collect the following IDs from your Google Cloud Console:
 
-This template provides the architectural foundation. To make it fully operational in a production environment, you must complete the following critical steps:
+Organization ID: (12-digit number)
 
-**1. Implement IAM Bindings (Highest Priority)**
+Billing Account ID: (e.g., 012345-567890-ABCDEF)
 
-This code creates the custom roles within each tenant project but does not assign them to any users or groups. You must bind your Google Groups or service accounts to the appropriate roles.
+Folder ID: The ID where Spoke projects will be created.
 
-*   **Example:** To grant your marketing developers the "Builder" role on the marketing tenant project, add the following to your tenant instantiation (e.g., `tenant_deployments/tenant_marketing.tf`):
+3. Self-Deployment Instructions
+Follow these steps to deploy the architecture without assistance:
 
-    ```terraform
-    resource "google_project_iam_member" "marketing_builder_binding" {
-      project = module.marketing_tenant.project_id
-      # Reference the custom role ID from the module output
-      role    = module.marketing_tenant.gemini_agent_builder_role_id
-      member  = "group:<REDACTED_PII>" # Replace with your group
-    }
+Step A: Clone and Initialize
+Bash
+git clone <repository-url>
+cd terraform-google-multi-tenant-agentic-ai
+terraform init
+Step B: Configure Variables
+Copy the example variable file and fill in your specific environment details:
 
-    # Add similar bindings for other roles and groups
-    ```
-    *   *Note: You'll need to add outputs for the role IDs in the `modules/tenant_iam_roles/outputs.tf` and pass them up through the `modules/tenant_project/outputs.tf`.*
+Bash
+cp terraform.tfvars.example terraform.tfvars
+Crucial: You must provide the "Project Numbers" (Numerical IDs) for the Hub and Spokes in terraform.tfvars. PAB and VPC-SC policies do not support String IDs for resource attachment.
 
-**2. Configure VPC Service Controls Perimeter Rules**
+Step C: Choose Your Connectivity Mode
+Inside terraform.tfvars, configure the trusted_corporate_ip_ranges:
 
-The example `org/vpc_sc.tf` file defines a perimeter but likely lacks the necessary ingress/egress rules. These rules are critical for function.
+For Public Access: Leave as []. Cloud Armor will allow all traffic but filter for SQLi/XSS attacks.
 
-*   **Ingress Rules:**
-    *   Allow the Frontend Portal's service account (from the Central Hub project) to call the Cloud Run agent services within the perimeter.
-    *   Allow other necessary management and monitoring services.
-*   **Egress Rules:**
-    *   Allow tenant agents to reach required Google APIs (like Vertex AI, Logging, Monitoring).
-    *   Restrict access to other services as per your security policy.
+For Internal-Only: Add your VPN/Office IP ranges (e.g., ["35.2.3.4/32"]). Cloud Armor will drop all other traffic at the edge.
 
-**3. Deploy and Configure the Frontend Portal Application**
+Step D: Deploy
+Bash
+terraform plan   # Review the 20+ resources being created
+terraform apply  # Confirm with 'yes'
+4. Post-Deployment: The "Second Lock" Verification
+Once Terraform finishes, it will output the Agent Service Account Emails. To finalize the setup:
 
-Replace the placeholder image in the `central_hub` module (`us-docker.pkg.dev/cloudrun/container/hello`) with your actual frontend application. This application is responsible for:
-*   Authenticating the user via the IAP-provided JWT header.
-*   Mapping the user's identity/groups to their corresponding tenant.
-*   Dynamically routing requests to the correct tenant's Cloud Run service URL. Consider using environment variables or a configuration service to manage tenant endpoints.
+Data Permissions: Grant the Marketing Agent SA access to your specific BigQuery datasets within the Marketing project.
 
-**4. Finalize Network Configuration**
+Identity Verification: Navigate to IAM > Principal Access Boundaries in the Console to verify that the Marketing Agent is restricted to its own project ID.
 
-Adapt the network configuration in the `modules/central_hub/` module to match your organization's networking standards. This might involve integrating with an existing Shared VPC, configuring firewall rules, and setting up private service connect.
+5. Security & Compliance Notes
+Least Privilege: This code creates custom roles (GeminiAgentBuilder, etc.). You must manually bind these roles to your human users/groups in the main.tf.
 
-**5. Secure Service Accounts**
+State Management: For production, move your terraform.tfstate to a secure GCS bucket with Object Versioning enabled.
 
-Ensure the `agent-runtime-sa` in each tenant project is granted only the minimum necessary permissions to access tenant data stores (BigQuery, GCS) and Vertex AI endpoints.
+Secrets: All API keys or sensitive strings should be moved to Google Cloud Secret Manager; do not hardcode them in .tfvars.
 
-**6. Cloud Armor Policies**
+6. Impact & Reporting (For Stakeholders)
+The outputs.tf file generates a summary used for tracking:
 
-Define and apply appropriate Cloud Armor security policies to the Load Balancer in the `central_hub` project to protect the Frontend Portal.
+Revenue Attribution: Project IDs are exported for mapping to Cloud Billing.
 
-**7. Monitoring and Logging**
-
-While logs are collected, configure centralized metrics dashboards and alerts in the Central Governance Platform as needed.
-
-## Security Considerations
-
-*   **Least Privilege:** Always grant the minimum necessary permissions.
-*   **Remote State:** Protect your Terraform state file, as it may contain sensitive information. Use a secure, access-controlled GCS bucket.
-*   **Secrets:** Do not hardcode secrets. Use a secret manager like Google Cloud Secret Manager.
-*   **Regular Audits:** Periodically review IAM permissions and VPC-SC configurations.
+Security Audit: Perimeter names and PAB bindings are exported for compliance reviews.
 
 
+🚀 Step-by-Step Deployment Guide
+Follow these exact steps to stand up the Multi-Tenant Agentic AI Platform.
 
+Phase 1: Environment Preparation
+Select your Organization: Ensure you have the Organization ID and a Folder ID where the projects will reside.
 
+Enable Required APIs: In your seed/utility project (where you run Terraform), enable the Service Usage and Access Context Manager APIs:
 
+Bash
+gcloud services enable cloudresourcemanager.googleapis.com \
+                       serviceusage.googleapis.com \
+                       accesscontextmanager.googleapis.com \
+                       billingbudgets.googleapis.com
+Create an Access Policy: (If one doesn't exist) VPC Service Controls require an Access Policy at the Org level:
 
+Bash
+gcloud access-context-manager policies create --organization=YOUR_ORG_ID --title="Org Policy"
+Copy the assigned ID (a 12-digit number) for your variables.tf.
+
+Phase 2: Configuration
+Initialize Terraform:
+
+Bash
+terraform init
+Create your Variables File:
+
+Bash
+cp terraform.tfvars.example terraform.tfvars
+Edit terraform.tfvars: Use vi or nano to input your specific IDs.
+
+Pro Tip: To find your Project Numbers for the Hub and Spokes, run:
+gcloud projects describe YOUR_PROJECT_ID --format="value(projectNumber)"
+
+Phase 3: Execution
+Plan the Deployment:
+
+Bash
+terraform plan -out=platform.tfplan
+Review the output. You should see 25+ resources being created, including 3 projects, 1 perimeter, and 2 PAB policies.
+
+Apply the Changes:
+
+Bash
+terraform apply "platform.tfplan"
+Phase 4: Post-Deployment Verification
+Once the "Apply complete!" message appears, verify the "Double-Lock" is active:
+
+Verify the Outer Wall (VPC-SC):
+
+Bash
+gcloud access-context-manager perimeters list --policy=YOUR_ACCESS_POLICY_ID
+Verify the Inner Handcuffs (PAB):
+Go to the Google Cloud Console: IAM & Admin > Principal Access Boundaries.
+Check that the mkt-isolation-policy is correctly bound to the Marketing Agent's Service Account.
+
+Phase 5: Connecting the Agents
+Deploy your Code: Navigate to the tenant_marketing project and deploy your Cloud Run container:
+
+Bash
+gcloud run deploy marketing-agent --image=YOUR_IMAGE --project=mkt-PROD_ID
+Test Access: Try to access a BigQuery dataset in the HR project using the Marketing Agent's identity. The request should be denied by the PAB policy, even if IAM roles were accidentally granted.
