@@ -55,7 +55,7 @@ terraform plan   # Review the 20+ resources being created
 terraform apply  # Confirm with 'yes'
 ```
 
-🚀 4. Step-by-Step Deployment Guide
+##  🚀 4. Step-by-Step Deployment Guide
 Phase 1: Environment Preparation
 Enable Required APIs:
 
@@ -107,15 +107,20 @@ Navigate to IAM & Admin > Principal Access Boundaries in the Console.
 
 Confirm the mkt-isolation-policy is correctly bound to the Marketing Agent's Service Account.
 
-5. Security & Compliance Notes
+---
+
+## 5. Security & Compliance Notes
 Least Privilege: Manually bind the custom roles (GeminiAgentBuilder, etc.) to your human users/groups in the main.tf.
 
 State Management: For production, move your terraform.tfstate to a secure GCS bucket with Object Versioning enabled.
 
 Secrets: All API keys or sensitive strings should be moved to Google Cloud Secret Manager; do not hardcode them in .tfvars.
 
-6. Impact & Reporting (For Stakeholders)
+---
+
+## 6. Impact & Reporting (For Stakeholders)
 Revenue Attribution: Project IDs are exported for mapping to Cloud Billing.
 
 Security Audit: Perimeter names and PAB bindings are exported for compliance reviews.
 
+---
