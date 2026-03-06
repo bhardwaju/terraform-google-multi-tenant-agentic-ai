@@ -34,7 +34,7 @@ cd terraform-google-multi-tenant-agentic-ai
 terraform init
 ```
 
-Step B: Configure Variables
+### Step B: Configure Variables
 Copy the example variable file and fill in your specific environment details:
 
 ```bash
@@ -43,7 +43,7 @@ cp terraform.tfvars.example terraform.tfvars
 
 CRUCIAL: You must provide the Project Numbers (Numerical IDs) for the Hub and Spokes. PAB and VPC-SC policies do not support String IDs.
 
-Step C: Choose Your Connectivity Mode
+### Step C: Choose Your Connectivity Mode
 In terraform.tfvars, configure trusted_corporate_ip_ranges:
 
 For Public Access: Leave as [].
@@ -56,7 +56,8 @@ terraform apply  # Confirm with 'yes'
 ```
 
 ##  🚀 4. Step-by-Step Deployment Guide
-Phase 1: Environment Preparation
+
+### Phase 1: Environment Preparation
 Enable Required APIs:
 
 ```bash
@@ -73,7 +74,7 @@ gcloud access-context-manager policies create \
   --organization=YOUR_ORG_ID --title="Org Policy"
 ```
 
-Phase 2: Configuration
+### Phase 2: Configuration
 Edit terraform.tfvars: Use vi or nano to input your specific IDs.
 
 Find Project Numbers:
@@ -82,7 +83,7 @@ Find Project Numbers:
 gcloud projects describe YOUR_PROJECT_ID --format="value(projectNumber)"
 ```
 
-Phase 3: Execution
+### Phase 3: Execution
 Plan the Deployment:
 
 ```bash
@@ -93,7 +94,7 @@ Apply the Changes:
 
 terraform apply "platform.tfplan"
 ```
-Phase 4: Post-Deployment Verification
+### Phase 4: Post-Deployment Verification
 Verify Outer Wall (VPC-SC):
 
 ```bash
@@ -103,24 +104,24 @@ gcloud access-context-manager perimeters list --policy=YOUR_ACCESS_POLICY_ID
 
 Verify Inner Handcuffs (PAB):
 
-Navigate to IAM & Admin > Principal Access Boundaries in the Console.
+* **Navigate to IAM & Admin > Principal Access Boundaries in the Console.
 
-Confirm the mkt-isolation-policy is correctly bound to the Marketing Agent's Service Account.
+* **Confirm the mkt-isolation-policy is correctly bound to the Marketing Agent's Service Account.
 
 ---
 
 ## 5. Security & Compliance Notes
 Least Privilege: Manually bind the custom roles (GeminiAgentBuilder, etc.) to your human users/groups in the main.tf.
 
-State Management: For production, move your terraform.tfstate to a secure GCS bucket with Object Versioning enabled.
+* **State Management: For production, move your terraform.tfstate to a secure GCS bucket with Object Versioning enabled.
 
-Secrets: All API keys or sensitive strings should be moved to Google Cloud Secret Manager; do not hardcode them in .tfvars.
+* **Secrets: All API keys or sensitive strings should be moved to Google Cloud Secret Manager; do not hardcode them in .tfvars.
 
 ---
 
 ## 6. Impact & Reporting (For Stakeholders)
-Revenue Attribution: Project IDs are exported for mapping to Cloud Billing.
+* **Revenue Attribution: Project IDs are exported for mapping to Cloud Billing.
 
-Security Audit: Perimeter names and PAB bindings are exported for compliance reviews.
+* **Security Audit: Perimeter names and PAB bindings are exported for compliance reviews.
 
 ---
