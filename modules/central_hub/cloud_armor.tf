@@ -1,12 +1,13 @@
 # modules/central_hub/cloud_armor.tf
 
 resource "google_compute_security_policy" "security_policy" {
-  name    = "central-hub-flexible-policy"
+  name    = "central-hub-hardened-policy"
   project = var.hub_project_id
 
-  # --- LEVEL 1: IP ALLOWLIST (Optional Internal-Only Lock) ---
-  # TO ENABLE INTERNAL-ONLY: Set var.trusted_corporate_ip_ranges.
-  # TO KEEP PUBLIC: Leave the variable empty or ignore this rule.
+  # =============================================================================
+  # LEVEL 1: TRUSTED ACCESS (IP Allowlist)
+  # =============================================================================
+  # Only allows traffic from your corporate CIDR ranges defined in variables.
   rule {
     action   = "allow"
     priority = "100"
@@ -19,8 +20,25 @@ resource "google_compute_security_policy" "security_policy" {
     description = "Allow traffic from trusted corporate network"
   }
 
-  # --- LEVEL 2: SECURITY SCANNING (Applied to ALL allowed traffic) ---
+  # =============================================================================
+  # LEVEL 2: THREAT INTELLIGENCE & BOT PROTECTION
+  # =============================================================================
+  # Blocks known malicious actors, botnets, and scanners before they hit the WAF.
+  rule {
+    action   = "deny(403)"
+    priority = "500"
+    match {
+      expr {
+        expression = "evaluatePreconfiguredExpr('botman-stable')"
+      }
+    }
+    description = "WAF: Block known botnets and scanners"
+  }
 
+  # =============================================================================
+  # LEVEL 3: WAF PAYLOAD INSPECTION (SQLi & XSS)
+  # =============================================================================
+  
   # Rule: Block SQL Injection (SQLi)
   rule {
     action   = "deny(403)"
@@ -35,7 +53,6 @@ resource "google_compute_security_policy" "security_policy" {
 
   # Rule: Block Cross-Site Scripting (XSS)
   rule {
-    rule_id  = "xss_protection"
     action   = "deny(403)"
     priority = "1010"
     match {
@@ -46,36 +63,22 @@ resource "google_compute_security_policy" "security_policy" {
     description = "WAF: Block XSS"
   }
 
-  # --- LEVEL 3: GLOBAL ACCESS CONTROL ---
-
-  # SCENARIO A: PUBLIC ACCESS (Default)
-  # Use this rule to allow the general public while still filtering via WAF above.
-  rule {
-    action   = "allow"
-    priority = "2147483647"
-    match {
-      versioned_expr = "SRC_IPS_V1"
-      config {
-        src_ip_ranges = ["*"]
-      }
-    }
-    description = "Default Allow: Use for Public-Facing applications"
-  }
-
-  /* # SCENARIO B: INTERNAL-ONLY (The "First-Packet-Deny")
-  # TO ENABLE: Uncomment this rule and DELETE the "Default Allow" rule above.
-  # This will drop all traffic not explicitly allowed in Rule 100.
+  # =============================================================================
+  # LEVEL 4: GLOBAL DEFAULT (Hard Isolation Enforcement)
+  # =============================================================================
   
+  # DEFAULT DENY: This ensures that any traffic NOT originating from the 
+  # trusted_corporate_ip_ranges is dropped at the edge. 
+  # This aligns with the "Hard Isolation" strategy.
   rule {
     action   = "deny(403)"
-    priority = "2147483647"
+    priority = "2147483647" # Lowest priority (Default Rule)
     match {
       versioned_expr = "SRC_IPS_V1"
       config {
         src_ip_ranges = ["*"]
       }
     }
-    description = "Default Deny: Use for Internal-Only/VPN-only applications"
+    description = "Default Deny: All non-allowlisted traffic is blocked"
   }
-  */
 }

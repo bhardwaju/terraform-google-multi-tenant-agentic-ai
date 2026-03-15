@@ -7,6 +7,8 @@ resource "google_project_service" "apis" {
     "aiplatform.googleapis.com",
     "bigquery.googleapis.com", 
     "storage.googleapis.com",
+    "modelarmor.googleapis.com",
+    "securitycenter.googleapis.com",
     "iamcredentials.googleapis.com",
     "serviceusage.googleapis.com",
     "monitoring.googleapis.com",

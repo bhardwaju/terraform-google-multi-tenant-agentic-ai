@@ -1,12 +1,35 @@
+# modules/central_hub/variables.tf
+
 variable "hub_project_id" { type = string }
-variable "region"         { type = string, default = "us-central1" }
+
+variable "hub_project_number" {
+  description = "The numerical project number of the Hub (used for the LB Service Agent)"
+  type        = string
+}
+
+variable "region" { 
+  type    = string
+  default = "us-central1" 
+}
+
+# --- Tenant Project IDs (Required for the IAM Bridge) ---
+
+variable "mkt_project_id" {
+  description = "Project ID for the Marketing tenant"
+  type        = string
+}
+
+variable "hr_project_id" {
+  description = "Project ID for the HR tenant"
+  type        = string
+}
 
 # --- Flexible Security Variables ---
 
 variable "trusted_corporate_ip_ranges" {
-  description = "List of public IP ranges (CIDR) for Internal-Only access. Leave empty for Public-Facing mode."
+  description = "List of public IP ranges (CIDR) for Internal-Only access."
   type        = list(string)
-  default     = [] # Default to empty to support the "Public" scenario
+  default     = [] 
 }
 
 variable "enforce_edge_lockdown" {
