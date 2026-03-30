@@ -1,26 +1,30 @@
 # modules/central_hub/variables.tf
 
-variable "hub_project_id" { type = string }
-
-variable "hub_project_number" {
-  description = "The numerical project number of the Hub (used for the LB Service Agent)"
+variable "hub_project_id" {
+  description = "The project ID for the Central Hub."
   type        = string
 }
 
-variable "region" { 
-  type    = string
-  default = "us-central1" 
+variable "hub_project_number" {
+  description = "The numerical project number of the Hub (used for the LB Service Agent)."
+  type        = string
+}
+
+variable "region" {
+  description = "The default Google Cloud region for deploying Hub resources."
+  type        = string
+  default     = "us-central1" 
 }
 
 # --- Tenant Project IDs (Required for the IAM Bridge) ---
 
 variable "mkt_project_id" {
-  description = "Project ID for the Marketing tenant"
+  description = "Project ID for the Marketing tenant."
   type        = string
 }
 
 variable "hr_project_id" {
-  description = "Project ID for the HR tenant"
+  description = "Project ID for the HR tenant."
   type        = string
 }
 
@@ -33,7 +37,7 @@ variable "trusted_corporate_ip_ranges" {
 }
 
 variable "enforce_edge_lockdown" {
-  description = "Toggle to switch between Default Allow (Public) and Default Deny (Internal-Only)"
+  description = "Toggle to switch between Default Allow (Public) and Default Deny (Internal-Only)."
   type        = bool
   default     = false
 }

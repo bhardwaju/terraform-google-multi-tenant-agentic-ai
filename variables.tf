@@ -1,4 +1,4 @@
-# root variables.tf
+# variables.tf
 
 variable "hub_project_id" {
   type        = string
@@ -60,14 +60,4 @@ variable "trusted_corporate_ip_ranges" {
   type        = list(string)
   description = "List of corporate IP ranges for Internal-Only mode. Leave as [] for Public mode."
   default     = []
-}
-
-terraform {
-  required_version = ">= 1.0.0"
-  required_providers {
-    google = {
-      source  = "hashicorp/google"
-      version = ">= 5.0.0"
-    }
-  }
 }

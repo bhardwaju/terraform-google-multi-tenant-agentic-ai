@@ -15,7 +15,8 @@ resource "google_cloud_run_v2_service" "agent" {
   template {
     service_account = google_service_account.agent_sa.email
     containers {
-      image = "us-docker.pkg.dev/cloudrun/container/hello" 
+      # Leverages the dynamic local variable
+      image = local.agent_container_image 
       env {
         name  = "MODEL_ARMOR_TEMPLATE"
         value = google_model_armor_template.tenant_filter.id
@@ -34,7 +35,8 @@ resource "google_cloud_run_v2_service" "mcp_server" {
   template {
     service_account = google_service_account.agent_sa.email
     containers {
-      image = "us-docker.pkg.dev/cloudrun/container/hello"
+      # Leverages the dynamic local variable
+      image = local.mcp_server_container_image
       env {
         name  = "DATASET_ID"
         value = google_bigquery_dataset.rag_dataset.dataset_id

@@ -21,8 +21,3 @@ resource "google_model_armor_template" "tenant_filter" {
 
   depends_on = [google_project_service.apis]
 }
-
-# Output the Template ID so the Agent Runtime can use it in its code
-output "model_armor_template_id" {
-  value = google_model_armor_template.tenant_filter.id
-}
