@@ -1,10 +1,5 @@
 # modules/tenant_project/iam.tf
 
-# Dynamically fetches the project metadata (including the number) using the Project ID
-data "google_project" "tenant_project" {
-  project_id = var.project_id
-}
-
 # =============================================================================
 # 1. Principal Access Boundary (PAB)
 # =============================================================================
@@ -17,8 +12,8 @@ resource "google_iam_principal_access_boundary_policy" "tenant_isolation" {
   rules {
     description = "Restrict ${var.tenant_name} Agent identity to its own project resources"
     effect      = "ALLOW"
-    # Replaced var.project_number with the dynamic data source lookup
-    resources   = ["cloudresourcemanager.googleapis.com/projects/${data.google_project.tenant_project.number}"]
+    # Directly references the project resource created in this module
+    resources   = ["cloudresourcemanager.googleapis.com/projects/${google_project.tenant.number}"]
   }
 }
 

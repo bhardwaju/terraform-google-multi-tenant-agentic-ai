@@ -2,8 +2,10 @@
 
 resource "google_service_account" "agent_sa" {
   project      = google_project.tenant.project_id
-  account_id   = "agent-runtime-sa"
-  display_name = "Agent Runtime Service Account"
+  # Dynamically prefixes the service account ID with the tenant ID
+  account_id   = "${var.tenant_id}-agent-runtime-sa"
+  # Adds the full tenant name to the display name for easier UI readability
+  display_name = "Agent Runtime SA for ${var.tenant_name}"
 }
 
 resource "google_cloud_run_v2_service" "agent" {

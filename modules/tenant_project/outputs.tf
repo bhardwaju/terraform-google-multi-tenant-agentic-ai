@@ -23,3 +23,8 @@ output "model_armor_template_id" {
   description = "The ID of the Model Armor security filter"
   value       = google_model_armor_template.tenant_filter.id
 }
+
+output "project_number" {
+  description = "The numeric Google Cloud Project Number for the tenant."
+  value       = google_project.tenant.number
+}

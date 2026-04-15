@@ -62,22 +62,13 @@ variable "agent_sa_project_roles" {
   ]
 }
 
+# REMOVED the default block to enforce explicit configuration
 variable "cloud_run_iam_bindings" {
-  description = "An object defining the IAM bindings for the Cloud Run agent service."
+  description = "An object defining the IAM bindings for the Cloud Run agent service. Must be explicitly provided."
   type = map(object({
     role   = string
     member = string
   }))
-  default = {
-    agent_builder = {
-      role   = "roles/run.developer"
-      member = "group:GeminiAgentBuilders@yourcompany.com"
-    }
-    agent_user = {
-      role   = "roles/run.invoker"
-      member = "group:GeminiAppUsers@yourcompany.com"
-    }
-  }
 }
 
 variable "agent_image_name" {
@@ -87,7 +78,7 @@ variable "agent_image_name" {
 }
 
 variable "agent_image_tag" {
-  description = "The specific tag or version of the Agent container image to deploy."
+  description = "The specific tag or version of the Agent container image to deploy. WARNING: The default 'latest' should only be used for dev/testing. For production, always override this with a specific immutable tag (e.g., 'v1.2.3' or a Git SHA)."
   type        = string
   default     = "latest" 
 }
@@ -99,7 +90,7 @@ variable "mcp_server_image_name" {
 }
 
 variable "mcp_server_image_tag" {
-  description = "The specific tag or version of the MCP server container image to deploy."
+  description = "The specific tag or version of the MCP server container image to deploy. WARNING: The default 'latest' should only be used for dev/testing. For production, always override this with a specific immutable tag (e.g., 'v1.2.3' or a Git SHA)."
   type        = string
   default     = "latest" 
 }

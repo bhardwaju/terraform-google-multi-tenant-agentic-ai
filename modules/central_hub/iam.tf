@@ -1,18 +1,20 @@
 # modules/central_hub/iam.tf
 
 # =============================================================================
-# HUB-TO-SPOKE CONNECTIVITY
-# Allows the Central Load Balancer's Service Agent to invoke Cloud Run 
-# services located within the isolated Tenant Projects.
+# Cross-Project Service Invocation (Resource-Scoped)
 # =============================================================================
 
-resource "google_project_iam_member" "hub_invoker" {
-  # Iterates through your marketing and HR project IDs
-  for_each = toset([var.mkt_project_id, var.hr_project_id])
+# Dynamically grants Hub access to ALL tenant Cloud Run services passed into the module
+resource "google_cloud_run_v2_service_iam_member" "tenant_agent_invoker" {
+  for_each = var.tenant_projects
+
+  project  = each.value
+  location = var.region
   
-  project = each.value
-  role    = "roles/run.invoker"
+  # Constructs the service name dynamically (e.g., "marketing-agent", "hr-agent")
+  # using the key from the map
+  name     = "${each.key}-agent" 
+  role     = "roles/run.invoker"
   
-  # The Google-managed service account for the GCE/LB layer in the Hub
-  member  = "serviceAccount:service-${var.hub_project_number}@gcp-sa-compute.iam.gserviceaccount.com"
+  member   = "serviceAccount:${google_service_account.hub_sa.email}" 
 }

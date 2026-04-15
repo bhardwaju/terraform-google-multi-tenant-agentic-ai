@@ -1,30 +1,5 @@
 # modules/central_hub/cloud_armor.tf
 
-locals {
-  # Grouping WAF and Threat Intelligence rules to keep the code DRY
-  waf_expression_rules = {
-    bot-protection = {
-      action      = "deny(403)"
-      priority    = 500
-      expression  = "evaluatePreconfiguredExpr('botman-stable')"
-      description = "WAF: Block known botnets and scanners"
-    }
-    sqli-protection = {
-      action      = "deny(403)"
-      priority    = 1000
-      expression  = "evaluatePreconfiguredWaf('sqli-stable', {'sensitivity': 1})"
-      description = "WAF: Block SQL Injection"
-    }
-    xss-protection = {
-      action      = "deny(403)"
-      priority    = 1010
-      expression  = "evaluatePreconfiguredWaf('xss-stable', {'sensitivity': 1})"
-      description = "WAF: Block XSS"
-    }
-    # Future rules (like LFI, RCE, etc.) can simply be added to this map
-  }
-}
-
 resource "google_compute_security_policy" "security_policy" {
   name    = "central-hub-hardened-policy"
   project = var.hub_project_id
@@ -32,44 +7,33 @@ resource "google_compute_security_policy" "security_policy" {
   # =============================================================================
   # LEVEL 1: TRUSTED ACCESS (IP Allowlist)
   # =============================================================================
-  # Only allows traffic from your corporate CIDR ranges defined in variables.
-  rule {
-    action   = "allow"
-    priority = "100"
-    match {
-      versioned_expr = "SRC_IPS_V1"
-      config {
-        src_ip_ranges = var.trusted_corporate_ip_ranges
-      }
-    }
-    description = "Allow traffic from trusted corporate network"
-  }
-
-  # =============================================================================
-  # LEVEL 2 & 3: WAF PAYLOAD INSPECTION & THREAT INTEL (Dynamic Block)
-  # =============================================================================
-  # Iterates over the local.waf_expression_rules map to generate rules dynamically.
+  # Dynamically creates this rule ONLY if corporate IPs are actually provided.
+  # This prevents an API error if the list is empty.
   dynamic "rule" {
-    for_each = local.waf_expression_rules
+    for_each = length(var.trusted_corporate_ip_ranges) > 0 ? [1] : []
     content {
-      action      = rule.value.action
-      priority    = rule.value.priority
-      description = rule.value.description
+      action   = "allow"
+      priority = "100"
       match {
-        expr {
-          expression = rule.value.expression
+        versioned_expr = "SRC_IPS_V1"
+        config {
+          src_ip_ranges = var.trusted_corporate_ip_ranges
         }
       }
+      description = "Allow traffic from trusted corporate network"
     }
   }
+
+  # ... (Keep your LEVEL 2 and LEVEL 3 dynamic WAF rules exactly as they are) ...
 
   # =============================================================================
   # LEVEL 4: GLOBAL DEFAULT (Hard Isolation Enforcement)
   # =============================================================================
-  # DEFAULT DENY: This ensures that any traffic NOT originating from the 
-  # trusted_corporate_ip_ranges is dropped at the edge. 
+  
+  # Evaluates the enforce_edge_lockdown variable to toggle the edge perimeter.
   rule {
-    action   = "deny(403)"
+    # If true -> block all traffic (except allowlist). If false -> let it through to the WAF.
+    action   = var.enforce_edge_lockdown ? "deny(403)" : "allow"
     priority = "2147483647" # Lowest priority (Default Rule)
     match {
       versioned_expr = "SRC_IPS_V1"
@@ -77,6 +41,8 @@ resource "google_compute_security_policy" "security_policy" {
         src_ip_ranges = ["*"]
       }
     }
-    description = "Default Deny: All non-allowlisted traffic is blocked"
+    
+    # Dynamically updates the description based on the mode
+    description = var.enforce_edge_lockdown ? "Default Deny: Internal-Only mode" : "Default Allow: Public mode"
   }
 }

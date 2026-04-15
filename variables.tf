@@ -61,3 +61,9 @@ variable "trusted_corporate_ip_ranges" {
   description = "List of corporate IP ranges for Internal-Only mode. Leave as [] for Public mode."
   default     = []
 }
+
+variable "tenant_project_numbers" {
+  description = "A list of numeric Project Numbers for all Tenant Spokes to be included in the Macro-Perimeter."
+  type        = list(string)
+  default     = [] # Optional, but good practice
+}
