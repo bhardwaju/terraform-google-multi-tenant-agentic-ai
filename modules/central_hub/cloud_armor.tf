@@ -8,7 +8,6 @@ resource "google_compute_security_policy" "security_policy" {
   # LEVEL 1: TRUSTED ACCESS (IP Allowlist)
   # =============================================================================
   # Dynamically creates this rule ONLY if corporate IPs are actually provided.
-  # This prevents an API error if the list is empty.
   dynamic "rule" {
     for_each = length(var.trusted_corporate_ip_ranges) > 0 ? [1] : []
     content {
@@ -24,15 +23,39 @@ resource "google_compute_security_policy" "security_policy" {
     }
   }
 
-  # ... (Keep your LEVEL 2 and LEVEL 3 dynamic WAF rules exactly as they are) ...
+  # =============================================================================
+  # LEVEL 2: SQL INJECTION (SQLi) PREVENTION
+  # =============================================================================
+  rule {
+    action   = "deny(403)"
+    priority = "1000"
+    match {
+      expr {
+        expression = "evaluatePreconfiguredExpr('sqli-v33-stable')"
+      }
+    }
+    description = "Block SQL Injection attacks"
+  }
+
+  # =============================================================================
+  # LEVEL 3: CROSS-SITE SCRIPTING (XSS) PREVENTION
+  # =============================================================================
+  rule {
+    action   = "deny(403)"
+    priority = "2000"
+    match {
+      expr {
+        expression = "evaluatePreconfiguredExpr('xss-v33-stable')"
+      }
+    }
+    description = "Block Cross-Site Scripting (XSS) attacks"
+  }
 
   # =============================================================================
   # LEVEL 4: GLOBAL DEFAULT (Hard Isolation Enforcement)
   # =============================================================================
-  
   # Evaluates the enforce_edge_lockdown variable to toggle the edge perimeter.
   rule {
-    # If true -> block all traffic (except allowlist). If false -> let it through to the WAF.
     action   = var.enforce_edge_lockdown ? "deny(403)" : "allow"
     priority = "2147483647" # Lowest priority (Default Rule)
     match {
@@ -41,8 +64,6 @@ resource "google_compute_security_policy" "security_policy" {
         src_ip_ranges = ["*"]
       }
     }
-    
-    # Dynamically updates the description based on the mode
     description = var.enforce_edge_lockdown ? "Default Deny: Internal-Only mode" : "Default Allow: Public mode"
   }
 }

@@ -1,11 +1,15 @@
 locals {
+  # ===========================================================================
+  # 1. Container Images
+  # ===========================================================================
   # Concatenates the image names and tags dynamically
   agent_container_image      = "${var.agent_image_name}:${var.agent_image_tag}"
   mcp_server_container_image = "${var.mcp_server_image_name}:${var.mcp_server_image_tag}"
-  # Concatenates the image name and tag dynamically
-  frontend_container_image = "${var.frontend_image_name}:${var.frontend_image_tag}"
-}
-locals {
+  frontend_container_image   = "${var.frontend_image_name}:${var.frontend_image_tag}"
+
+  # ===========================================================================
+  # 2. Custom IAM Roles
+  # ===========================================================================
   # A map of objects defining the custom IAM roles to be created
   tenant_custom_roles = {
     gemini_console_viewer = {
@@ -60,8 +64,10 @@ locals {
       ]
     }
   }
-}
-locals {
+
+  # ===========================================================================
+  # 3. WAF & Threat Intelligence Rules
+  # ===========================================================================
   # Grouping WAF and Threat Intelligence rules to keep the code DRY
   waf_expression_rules = {
     bot-protection = {

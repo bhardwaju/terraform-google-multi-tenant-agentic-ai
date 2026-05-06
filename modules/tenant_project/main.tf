@@ -1,7 +1,5 @@
 # modules/tenant_project/main.tf
 
-# modules/tenant_project/main.tf
-
 # 1. Create the Project
 resource "google_project" "tenant" {
   name            = "Tenant-${var.tenant_name}"
